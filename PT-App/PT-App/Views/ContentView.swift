@@ -15,7 +15,6 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Dark background
                 LinearGradient(
                     colors: [Color.black, Color(white: 0.08)],
                     startPoint: .top, endPoint: .bottom
@@ -71,63 +70,11 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Routes
+// For presenting the editor as a sheet
 enum PlanEditorKind: Identifiable {
     case new, edit
     var id: Int { self == .new ? 0 : 1 }
 }
-
-// MARK: - Today card (shown when a plan exists)
-private struct TodayView: View {
-    let today: DayPlan
-    let onEdit: () -> Void
-    let onNew: () -> Void
-    let onDelete: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Today: \(today.weekday.rawValue)")
-                .font(.title2.weight(.semibold))
-
-            if today.isWorkoutDay {
-                Text("You have a workout today").font(.headline)
-
-                if today.exercises.isEmpty {
-                    Text("No exercises added to today yet.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    VStack(spacing: 10) {
-                        ForEach(today.exercises) { ex in
-                            ExerciseRow(exercise: ex)
-                        }
-                    }
-                }
-            } else {
-                Text("Rest day").font(.headline)
-                Text("No workout scheduled.")
-                    .foregroundStyle(.secondary)
-            }
-
-            HStack {
-                Button("Edit plan", action: onEdit)
-                Spacer()
-                Button("New plan", action: onNew)
-                Spacer()
-                Button(role: .destructive, action: onDelete) {
-                    Text("Delete plan")
-                }
-            }
-            .padding(.top, 8)
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(.ultraThinMaterial)
-        )
-    }
-    
-}
-
 
 #Preview {
     ContentView().environmentObject(PlanStore())

@@ -5,7 +5,6 @@
 //  Created by David Cole on 05/10/2025.
 //
 
-
 import Foundation
 
 struct Exercise: Identifiable, Hashable, Codable {

@@ -13,8 +13,6 @@ struct DayDetailView: View {
 
     @State private var showingAdd = false
     @State private var editing: Exercise? = nil
-
-    // For confirming when user turns workout day OFF
     @State private var showConfirmClear = false
     @State private var pendingTurnOff = false
 
@@ -26,7 +24,6 @@ struct DayDetailView: View {
             }
 
             Section("Exercises") {
-                // Tappable "Add an exercise"
                 Button {
                     editing = nil
                     showingAdd = true
@@ -64,8 +61,6 @@ struct DayDetailView: View {
         .background(Color.black)
         .navigationTitle(day.weekday.rawValue)
         .toolbar { ToolbarItem(placement: .topBarTrailing) { EditButton() } }
-
-        // Add / Edit sheet
         .sheet(isPresented: $showingAdd) {
             AddExerciseSheet(
                 initial: editing,
@@ -74,35 +69,25 @@ struct DayDetailView: View {
                         day.exercises[i] = ex
                     } else {
                         day.exercises.append(ex)
-                        if !day.isWorkoutDay { day.isWorkoutDay = true }   // auto ON
+                        if !day.isWorkoutDay { day.isWorkoutDay = true } // auto ON
                     }
                 }
             )
             .presentationDetents([.medium, .large])
         }
-
-        // React when the toggle changes (manual OFF needs confirmation)
-        .onChange(of: day.isWorkoutDay) { oldValue, newValue in
-            guard oldValue != newValue else { return }
-            // Only prompt when turning OFF and there are exercises
-            if !newValue && !day.exercises.isEmpty {
+        // iOS 17+ two-parameter onChange
+        .onChange(of: day.isWorkoutDay) { old, new in
+            guard old != new else { return }
+            if !new && !day.exercises.isEmpty {
                 pendingTurnOff = true
                 showConfirmClear = true
             }
         }
-
-        // Also handle external clears (e.g., delete all)
-        .onChange(of: day.exercises) { oldValue, newValue in
-            // Auto-OFF when exercises become empty
-            if newValue.isEmpty && day.isWorkoutDay {
-                day.isWorkoutDay = false
-            }
+        .onChange(of: day.exercises) { _, new in
+            if new.isEmpty && day.isWorkoutDay { day.isWorkoutDay = false } // auto OFF
         }
-
-        // Confirmation alert when turning OFF
         .alert("Turn this into a rest day?", isPresented: $showConfirmClear) {
             Button("Cancel", role: .cancel) {
-                // Revert: keep it a workout day
                 if pendingTurnOff { day.isWorkoutDay = true }
                 pendingTurnOff = false
             }
@@ -116,11 +101,9 @@ struct DayDetailView: View {
         }
     }
 
-    // MARK: - Helpers
-
     private func delete(at offsets: IndexSet) {
         day.exercises.remove(atOffsets: offsets)
-        if day.exercises.isEmpty && day.isWorkoutDay { day.isWorkoutDay = false } // auto OFF
+        if day.exercises.isEmpty && day.isWorkoutDay { day.isWorkoutDay = false }
     }
 
     private func move(from source: IndexSet, to destination: Int) {

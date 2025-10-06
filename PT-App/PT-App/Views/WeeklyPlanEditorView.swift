@@ -11,7 +11,6 @@ import SwiftUI
 struct WeeklyPlanEditorView: View {
     @Environment(\.dismiss) private var dismiss
 
-    // If nil => creating a new blank plan. If non-nil => editing existing.
     let initial: WeeklyPlan?
     let onSave: (WeeklyPlan) -> Void
 
@@ -29,43 +28,53 @@ struct WeeklyPlanEditorView: View {
                 Section {
                     ForEach($draft.days) { $day in
                         NavigationLink {
-                            DayDetailView(day: $day) // uses your tappable “Add an exercise” row
+                            DayDetailView(day: $day)
                         } label: {
                             HStack(spacing: 12) {
                                 Text(day.weekday.rawValue)
-                                Spacer()
-                                if day.isWorkoutDay {
-                                    Label("\(day.exercises.count) exercise\(day.exercises.count == 1 ? "" : "s")",
-                                          systemImage: "figure.strengthtraining.traditional")
+                                    .font(.body)
+                                    .layoutPriority(1)              // keep the day name from being squeezed first
+
+                                Spacer(minLength: 12)
+
+                                Group {
+                                    if day.isWorkoutDay {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "figure.strengthtraining.traditional")
+                                            Text("\(day.exercises.count) exercise\(day.exercises.count == 1 ? "" : "s")")
+                                                .monospacedDigit()
+                                        }
                                         .foregroundStyle(.green)
-                                } else {
-                                    Text("Rest").foregroundStyle(.secondary)
+                                    } else {
+                                        Text("Rest")
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .fixedSize(horizontal: true, vertical: false)  // ← don’t allow wrapping
+                                .frame(minWidth: 98, alignment: .trailing)     // ← reserve space so it won’t get crushed
+
                                 Toggle("", isOn: $day.isWorkoutDay)
                                     .labelsHidden()
                                     .tint(.green)
                             }
+                            .contentShape(Rectangle())
                         }
                     }
                 } header: {
                     Text("Weekly Plan")
                 } footer: {
-                    Text("Choose your workout days, tap a day to add exercises, then tap Save.")
+                    Text("Choose workout days, tap a day to add exercises, then Save.")
                 }
             }
             .scrollContentBackground(.hidden)
             .background(Color.black)
             .navigationTitle(initial == nil ? "New Plan" : "Edit Plan")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        onSave(draft)
-                        dismiss()
-                    }
-                    .tint(.green)
+                    Button("Save") { onSave(draft); dismiss() }.tint(.green)
                 }
             }
         }

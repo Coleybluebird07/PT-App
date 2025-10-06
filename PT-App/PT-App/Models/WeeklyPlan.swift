@@ -23,12 +23,10 @@ struct WeeklyPlan: Codable {
     func index(of weekday: Weekday) -> Int? {
         days.firstIndex(where: { $0.weekday == weekday })
     }
-    
-
 }
 
 extension WeeklyPlan {
-    /// Consider the plan "empty" if every day is rest and has no exercises.
+    /// Treat as “no plan” if every day is rest with no exercises.
     var isTrulyEmpty: Bool {
         days.allSatisfy { !$0.isWorkoutDay && $0.exercises.isEmpty }
     }

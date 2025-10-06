@@ -10,59 +10,99 @@ import Foundation
 import Combine
 
 final class PlanStore: ObservableObject {
+    // Current weekly plan
     @Published var plan: WeeklyPlan? = nil
 
-    private let fileURL: URL
+    // Exercise logs (actual performance)
+    @Published var logs: [ExerciseLog] = []
+
+    // File URLs
+    private let planURL: URL
+    private let logsURL: URL
 
     init() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        fileURL = docs.appendingPathComponent("plan.json")
-        load()
+        planURL = docs.appendingPathComponent("plan.json")
+        logsURL = docs.appendingPathComponent("logs.json")
+        loadPlan()
+        loadLogs()
     }
 
-    // MARK: - Persistence
+    // MARK: - Plan helpers
+    var todayWeekday: Weekday { Weekday.today() }
+    var todayPlan: DayPlan? { plan?.day(for: todayWeekday) }
+
+    var hasUsablePlan: Bool { !(plan?.isTrulyEmpty ?? true) }
+    var todayPlanIfUsable: DayPlan? { hasUsablePlan ? todayPlan : nil }
+
     func save(plan: WeeklyPlan) {
         self.plan = plan
-        persist()
+        savePlan()
     }
 
     func deletePlan() {
-        plan = nil
-        try? FileManager.default.removeItem(at: fileURL)
+        self.plan = nil
+        try? FileManager.default.removeItem(at: planURL)
     }
 
-    private func persist() {
-        guard let plan else { return }
+    private func loadPlan() {
+        guard FileManager.default.fileExists(atPath: planURL.path) else { return }
         do {
-            let data = try JSONEncoder().encode(plan)
-            try data.write(to: fileURL, options: .atomic)
-        } catch {
-            print("Save failed:", error)
-        }
-    }
-
-    private func load() {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
-        do {
-            let data = try Data(contentsOf: fileURL)
+            let data = try Data(contentsOf: planURL)
             self.plan = try JSONDecoder().decode(WeeklyPlan.self, from: data)
         } catch {
-            print("Load failed:", error)
+            print("Load plan failed:", error)
             self.plan = nil
         }
     }
 
-    // MARK: - Today helpers
-    var todayWeekday: Weekday { Weekday.today() }
-    var todayPlan: DayPlan? { plan?.day(for: todayWeekday) }
-    
-    var hasUsablePlan: Bool {
-        guard let plan else { return false }
-        return !plan.isTrulyEmpty
+    private func savePlan() {
+        guard let plan else { return }
+        do {
+            let data = try JSONEncoder().encode(plan)
+            try data.write(to: planURL, options: .atomic)
+        } catch {
+            print("Save plan failed:", error)
+        }
     }
 
-    var todayPlanIfUsable: DayPlan? {
-        guard hasUsablePlan else { return nil }
-        return plan?.day(for: todayWeekday)
+    // MARK: - Logs helpers
+    func logForToday(exercise: Exercise) -> ExerciseLog {
+        let key = ExerciseLog.makeDateKey(Date())
+        if let existing = logs.first(where: { $0.exerciseId == exercise.id && $0.dateKey == key }) {
+            return existing
+        }
+        return ExerciseLog(exerciseId: exercise.id, date: Date(), setCount: exercise.sets)
+    }
+
+    func upsertLog(_ log: ExerciseLog) {
+        if let i = logs.firstIndex(where: { $0.id == log.id }) {
+            logs[i] = log
+        } else if let i = logs.firstIndex(where: { $0.exerciseId == log.exerciseId && $0.dateKey == log.dateKey }) {
+            logs[i] = log
+        } else {
+            logs.append(log)
+        }
+        saveLogs()
+    }
+
+    private func loadLogs() {
+        guard FileManager.default.fileExists(atPath: logsURL.path) else { return }
+        do {
+            let data = try Data(contentsOf: logsURL)
+            self.logs = try JSONDecoder().decode([ExerciseLog].self, from: data)
+        } catch {
+            print("Load logs failed:", error)
+            self.logs = []
+        }
+    }
+
+    private func saveLogs() {
+        do {
+            let data = try JSONEncoder().encode(logs)
+            try data.write(to: logsURL, options: .atomic)
+        } catch {
+            print("Save logs failed:", error)
+        }
     }
 }

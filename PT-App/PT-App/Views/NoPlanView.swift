@@ -12,7 +12,6 @@ struct NoPlanView: View {
     let onAdd: () -> Void
 
     var body: some View {
-        // Centered “card”
         VStack(spacing: 16) {
             Text("You have no plan")
                 .font(.title3.weight(.semibold))
@@ -20,10 +19,8 @@ struct NoPlanView: View {
 
             Button(action: onAdd) {
                 HStack(spacing: 10) {
-                    Image(systemName: "calendar.badge.plus")
-                        .imageScale(.medium)
-                    Text("Add your first plan")
-                        .fontWeight(.semibold)
+                    Image(systemName: "calendar.badge.plus").imageScale(.medium)
+                    Text("Add your first plan").fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -32,9 +29,8 @@ struct NoPlanView: View {
             .accessibilityLabel("Add your first plan")
         }
         .padding(22)
-        .frame(maxWidth: 360) // keeps it tidy on larger devices
+        .frame(maxWidth: 360)
         .background(
-            // Soft, modern card
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color.white.opacity(0.04))
                 .overlay(
@@ -44,13 +40,11 @@ struct NoPlanView: View {
                 .shadow(radius: 18, y: 6)
         )
         .padding(.horizontal, 24)
-        // Prefer being vertically centered on first run
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .combine)
     }
 }
 
-/// A nice green, tappable pill with press feedback
 struct PrimaryPillButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -59,12 +53,8 @@ struct PrimaryPillButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [
-                                Color.green.opacity(0.95),
-                                Color.green.opacity(0.85)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            colors: [Color.green.opacity(0.95), Color.green.opacity(0.85)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
                         )
                     )
             )

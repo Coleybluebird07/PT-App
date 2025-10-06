@@ -11,34 +11,28 @@ import SwiftUI
 struct AddExerciseSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    // Editing support
     private let editingID: UUID?
     let onSave: (Exercise) -> Void
 
-    // Fields
     @State private var name: String
     @State private var setsInt: Int
     @State private var repsInt: Int
     @State private var notes: String
+    @State private var defaultWeight: Double?      // ← NEW
 
-    // Keyboard focus
     @FocusState private var focused: Field?
+    private enum Field: Hashable { case name, sets, reps, weight, notes }
 
-    private enum Field: Hashable {
-        case name, sets, reps, notes
-    }
-
-    // MARK: - Init
     init(initial: Exercise?, onSave: @escaping (Exercise) -> Void) {
         self.editingID = initial?.id
         self.onSave = onSave
-        _name    = State(initialValue: initial?.name  ?? "")
-        _setsInt = State(initialValue: initial?.sets  ?? 3)
-        _repsInt = State(initialValue: initial?.reps  ?? 8)
-        _notes   = State(initialValue: initial?.notes ?? "")
+        _name          = State(initialValue: initial?.name ?? "")
+        _setsInt       = State(initialValue: initial?.sets ?? 3)
+        _repsInt       = State(initialValue: initial?.reps ?? 8)
+        _notes         = State(initialValue: initial?.notes ?? "")
+        _defaultWeight = State(initialValue: initial?.defaultWeight)   // ← NEW
     }
 
-    // MARK: - Body
     var body: some View {
         NavigationStack {
             Form {
@@ -53,7 +47,6 @@ struct AddExerciseSheet: View {
                     HStack {
                         Text("Sets")
                         Spacer()
-                        // Numeric keypad
                         TextField("Sets", value: $setsInt, format: .number)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
@@ -63,11 +56,9 @@ struct AddExerciseSheet: View {
                             .monospacedDigit()
                             .accessibilityLabel("Number of sets")
                     }
-
                     HStack {
                         Text("Reps")
                         Spacer()
-                        // Numeric keypad
                         TextField("Reps", value: $repsInt, format: .number)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
@@ -77,6 +68,27 @@ struct AddExerciseSheet: View {
                             .monospacedDigit()
                             .accessibilityLabel("Number of reps per set")
                     }
+                }
+
+                // NEW: default weight to prefill the logger
+                Section("Default weight (optional)") {
+                    HStack {
+                        Text("Weight")
+                        Spacer()
+                        TextField("kg", value: Binding(
+                            get: { defaultWeight ?? 0 },
+                            set: { defaultWeight = $0 == 0 ? nil : $0 }
+                        ), format: .number)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 90)
+                        .textFieldStyle(.roundedBorder)
+                        .focused($focused, equals: .weight)
+                        .accessibilityLabel("Default weight in kilograms")
+                    }
+                    Text("Used to prefill the log; you can change it later.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Notes") {
@@ -97,7 +109,6 @@ struct AddExerciseSheet: View {
                         .tint(.green)
                         .disabled(!canSave)
                 }
-                // Keyboard accessory bar with Done
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") { hideKeyboard() }
@@ -106,7 +117,6 @@ struct AddExerciseSheet: View {
         }
     }
 
-    // MARK: - Helpers
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         setsInt > 0 && repsInt > 0
@@ -120,7 +130,8 @@ struct AddExerciseSheet: View {
             name: trimmed,
             sets: setsInt,
             reps: repsInt,
-            notes: notes
+            notes: notes,
+            defaultWeight: defaultWeight          // ← pass through
         )
         onSave(exercise)
         dismiss()
@@ -134,7 +145,7 @@ struct AddExerciseSheet: View {
 
 #Preview {
     AddExerciseSheet(
-        initial: Exercise(name: "Bench Press", sets: 3, reps: 8),
+        initial: Exercise(name: "Bench Press", sets: 3, reps: 8, notes: "", defaultWeight: 60),
         onSave: { _ in }
     )
     .preferredColorScheme(.dark)

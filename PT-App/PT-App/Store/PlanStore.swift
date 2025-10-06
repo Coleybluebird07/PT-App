@@ -55,4 +55,14 @@ final class PlanStore: ObservableObject {
     // MARK: - Today helpers
     var todayWeekday: Weekday { Weekday.today() }
     var todayPlan: DayPlan? { plan?.day(for: todayWeekday) }
+    
+    var hasUsablePlan: Bool {
+        guard let plan else { return false }
+        return !plan.isTrulyEmpty
+    }
+
+    var todayPlanIfUsable: DayPlan? {
+        guard hasUsablePlan else { return nil }
+        return plan?.day(for: todayWeekday)
+    }
 }

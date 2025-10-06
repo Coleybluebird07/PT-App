@@ -15,43 +15,31 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
+                // Dark background
                 LinearGradient(
                     colors: [Color.black, Color(white: 0.08)],
                     startPoint: .top, endPoint: .bottom
                 )
                 .ignoresSafeArea()
 
-                if let today = store.todayPlan {
-                    // --- After a plan exists: show today ---
-                    TodayView(today: today,
-                              onEdit: { editorKind = .edit },
-                              onNew:  { editorKind = .new },
-                              onDelete: { showDeleteConfirm = true })
+                if let today = store.todayPlanIfUsable {
+                    TodayView(
+                        today: today,
+                        onEdit: { editorKind = .edit },
+                        onNew:  { editorKind = .new },
+                        onDelete: { showDeleteConfirm = true }
+                    )
                     .padding(.horizontal, 20)
                 } else {
-                    // --- First launch: only the CTA ---
-                    VStack(spacing: 16) {
-                        Text("Welcome")
-                            .font(.largeTitle.weight(.semibold))
-                        Text("Create your weekly workout plan to get started.")
-                            .foregroundStyle(.secondary)
-                        Button {
-                            editorKind = .new
-                        } label: {
-                            Text("Make a workout plan")
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.green)
-                        .padding(.top, 8)
-                    }
-                    .padding(.horizontal, 20)
+                    NoPlanView(onAdd: { editorKind = .new })
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 120)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 }
             }
             .navigationTitle("PT-App")
             .toolbar {
-                if store.plan != nil {
+                if store.hasUsablePlan {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             Button("Edit plan")  { editorKind = .edit }
@@ -76,22 +64,20 @@ struct ContentView: View {
             .sheet(item: $editorKind) { kind in
                 WeeklyPlanEditorView(
                     initial: kind == .edit ? store.plan : nil,
-                    onSave: { newPlan in
-                        store.save(plan: newPlan)
-                    }
+                    onSave: { newPlan in store.save(plan: newPlan) }
                 )
             }
         }
     }
 }
 
-// Which editor to show (new vs. edit)
+// MARK: - Routes
 enum PlanEditorKind: Identifiable {
     case new, edit
     var id: Int { self == .new ? 0 : 1 }
 }
 
-// View shown when a plan exists
+// MARK: - Today card (shown when a plan exists)
 private struct TodayView: View {
     let today: DayPlan
     let onEdit: () -> Void
@@ -104,14 +90,12 @@ private struct TodayView: View {
                 .font(.title2.weight(.semibold))
 
             if today.isWorkoutDay {
-                Text("You have a workout today")
-                    .font(.headline)
+                Text("You have a workout today").font(.headline)
 
                 if today.exercises.isEmpty {
                     Text("No exercises added to today yet.")
                         .foregroundStyle(.secondary)
                 } else {
-                    // Show exercises planned for today
                     VStack(spacing: 10) {
                         ForEach(today.exercises) { ex in
                             ExerciseRow(exercise: ex)
@@ -119,13 +103,11 @@ private struct TodayView: View {
                     }
                 }
             } else {
-                Text("Rest day")
-                    .font(.headline)
+                Text("Rest day").font(.headline)
                 Text("No workout scheduled.")
                     .foregroundStyle(.secondary)
             }
 
-            // Quick manage actions
             HStack {
                 Button("Edit plan", action: onEdit)
                 Spacer()
@@ -139,7 +121,14 @@ private struct TodayView: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 14).fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.ultraThinMaterial)
         )
     }
+    
+}
+
+
+#Preview {
+    ContentView().environmentObject(PlanStore())
 }

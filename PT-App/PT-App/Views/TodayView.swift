@@ -29,7 +29,7 @@ struct TodayView: View {
                     VStack(spacing: 10) {
                         ForEach(today.exercises) { ex in
                             NavigationLink {
-                                ExerciseLogView(exercise: ex)
+                                ExerciseLogView(exercise: ex, weekday: today.weekday)   // ← pass weekday
                             } label: {
                                 HStack {
                                     ExerciseRow(exercise: ex)
@@ -65,16 +65,4 @@ struct TodayView: View {
         let key = ExerciseLog.makeDateKey(Date())
         return store.logs.first(where: { $0.exerciseId == ex.id && $0.dateKey == key })?.completed == true
     }
-}
-
-#Preview {
-    TodayView(
-        today: DayPlan(weekday: .monday, isWorkoutDay: true, exercises: [
-            Exercise(name: "Bench Press", sets: 3, reps: 8),
-            Exercise(name: "Pull Ups", sets: 3, reps: 6)
-        ]),
-        onEdit: {}, onNew: {}, onDelete: {}
-    )
-    .environmentObject(PlanStore())
-    .preferredColorScheme(.dark)
 }

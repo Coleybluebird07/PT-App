@@ -13,7 +13,9 @@ struct Exercise: Identifiable, Hashable, Codable {
     var sets: Int
     var reps: Int
     var notes: String
-    var defaultWeight: Double?   // ← NEW: used to prefill logging (kg)
+    var defaultWeight: Double?            // used to prefill logging (kg)
+    var progressiveOverload: Bool         // NEW
+    var progressionIncrement: Double?     // NEW (kg), used when PO is on
 
     init(
         id: UUID = UUID(),
@@ -21,7 +23,9 @@ struct Exercise: Identifiable, Hashable, Codable {
         sets: Int,
         reps: Int,
         notes: String = "",
-        defaultWeight: Double? = nil
+        defaultWeight: Double? = nil,
+        progressiveOverload: Bool = false,
+        progressionIncrement: Double? = 2.5
     ) {
         self.id = id
         self.name = name
@@ -29,5 +33,7 @@ struct Exercise: Identifiable, Hashable, Codable {
         self.reps = reps
         self.notes = notes
         self.defaultWeight = defaultWeight
+        self.progressiveOverload = progressiveOverload
+        self.progressionIncrement = progressionIncrement
     }
 }

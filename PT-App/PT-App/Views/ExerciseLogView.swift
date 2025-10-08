@@ -12,10 +12,15 @@ struct ExerciseLogView: View {
     @Environment(\.dismiss) private var dismiss
 
     let exercise: Exercise
+    let weekday: Weekday               // ← which day to update for next week
     @State private var log: ExerciseLog
 
-    init(exercise: Exercise) {
+    @State private var showCongrats = false
+    @State private var congratsText = ""
+
+    init(exercise: Exercise, weekday: Weekday) {
         self.exercise = exercise
+        self.weekday = weekday
         _log = State(initialValue: ExerciseLog(exerciseId: exercise.id, setCount: exercise.sets))
     }
 
@@ -66,7 +71,7 @@ struct ExerciseLogView: View {
                 }
 
                 Button {
-                    log.results.append(SetResult(reps: 0, weight: exercise.defaultWeight)) // ← use default
+                    log.results.append(SetResult(reps: 0, weight: exercise.defaultWeight))
                 } label: {
                     Label("Add another set", systemImage: "plus.circle")
                 }
@@ -88,7 +93,7 @@ struct ExerciseLogView: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
                     store.upsertLog(log)
-                    dismiss()
+                    maybeApplyProgression()   // may show alert and bump next week
                 }
                 .tint(.green)
             }
@@ -100,22 +105,55 @@ struct ExerciseLogView: View {
                 }
             }
         }
+        .alert("Well done!", isPresented: $showCongrats) {
+            Button("OK") { dismiss() }     // return to Today after message
+        } message: {
+            Text(congratsText)
+        }
         .task {
             // Load or create
             let initial = store.logForToday(exercise: exercise)
             log = initial
 
-            // If we just created results, prefill each set's weight from defaultWeight
+            // Prefill weights from default if empty
             if log.results.allSatisfy({ $0.weight == nil }),
                let w = exercise.defaultWeight,
                !log.results.isEmpty {
                 for i in log.results.indices { log.results[i].weight = w }
             }
 
-            // If results are empty (e.g., older saved log schema), create them now
             if log.results.isEmpty && exercise.sets > 0 {
                 log.results = (0..<exercise.sets).map { _ in SetResult(reps: 0, weight: exercise.defaultWeight) }
             }
         }
+    }
+
+    // MARK: - Progressive overload logic
+    private func maybeApplyProgression() {
+        guard exercise.progressiveOverload else {
+            dismiss(); return
+        }
+
+        // Success if user met/beat target reps on each planned set
+        let planned = min(exercise.sets, log.results.count)
+        let hitAll = (0..<planned).allSatisfy { log.results[$0].reps >= exercise.reps }
+
+        if hitAll {
+            let inc = exercise.progressionIncrement ?? 2.5
+            store.applyProgression(for: weekday, exerciseId: exercise.id, increment: inc)
+
+            let newTarget = (exercise.defaultWeight ?? 0) + inc
+            congratsText = "You hit all \(exercise.sets)×\(exercise.reps). Next week we’ll target \(newTarget.cleanKG) kg."
+            showCongrats = true
+        } else {
+            // No progression this time; just go back
+            dismiss()
+        }
+    }
+}
+
+private extension Double {
+    var cleanKG: String {
+        truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", self) : String(format: "%.1f", self)
     }
 }

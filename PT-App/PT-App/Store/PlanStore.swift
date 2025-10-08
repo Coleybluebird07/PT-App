@@ -5,18 +5,13 @@
 //  Created by David Cole on 05/10/2025.
 //
 
-
 import Foundation
 import Combine
 
 final class PlanStore: ObservableObject {
-    // Current weekly plan
     @Published var plan: WeeklyPlan? = nil
-
-    // Exercise logs (actual performance)
     @Published var logs: [ExerciseLog] = []
 
-    // File URLs
     private let planURL: URL
     private let logsURL: URL
 
@@ -31,42 +26,24 @@ final class PlanStore: ObservableObject {
     // MARK: - Plan helpers
     var todayWeekday: Weekday { Weekday.today() }
     var todayPlan: DayPlan? { plan?.day(for: todayWeekday) }
-
     var hasUsablePlan: Bool { !(plan?.isTrulyEmpty ?? true) }
     var todayPlanIfUsable: DayPlan? { hasUsablePlan ? todayPlan : nil }
 
-    func save(plan: WeeklyPlan) {
-        self.plan = plan
-        savePlan()
-    }
-
-    func deletePlan() {
-        self.plan = nil
-        try? FileManager.default.removeItem(at: planURL)
-    }
+    func save(plan: WeeklyPlan) { self.plan = plan; savePlan() }
+    func deletePlan() { self.plan = nil; try? FileManager.default.removeItem(at: planURL) }
 
     private func loadPlan() {
         guard FileManager.default.fileExists(atPath: planURL.path) else { return }
-        do {
-            let data = try Data(contentsOf: planURL)
-            self.plan = try JSONDecoder().decode(WeeklyPlan.self, from: data)
-        } catch {
-            print("Load plan failed:", error)
-            self.plan = nil
-        }
+        do { plan = try JSONDecoder().decode(WeeklyPlan.self, from: Data(contentsOf: planURL)) }
+        catch { print("Load plan failed:", error); plan = nil }
     }
-
     private func savePlan() {
         guard let plan else { return }
-        do {
-            let data = try JSONEncoder().encode(plan)
-            try data.write(to: planURL, options: .atomic)
-        } catch {
-            print("Save plan failed:", error)
-        }
+        do { try JSONEncoder().encode(plan).write(to: planURL, options: .atomic) }
+        catch { print("Save plan failed:", error) }
     }
 
-    // MARK: - Logs helpers
+    // MARK: - Logs
     func logForToday(exercise: Exercise) -> ExerciseLog {
         let key = ExerciseLog.makeDateKey(Date())
         if let existing = logs.first(where: { $0.exerciseId == exercise.id && $0.dateKey == key }) {
@@ -74,7 +51,6 @@ final class PlanStore: ObservableObject {
         }
         return ExerciseLog(exerciseId: exercise.id, date: Date(), setCount: exercise.sets)
     }
-
     func upsertLog(_ log: ExerciseLog) {
         if let i = logs.firstIndex(where: { $0.id == log.id }) {
             logs[i] = log
@@ -85,24 +61,29 @@ final class PlanStore: ObservableObject {
         }
         saveLogs()
     }
-
     private func loadLogs() {
         guard FileManager.default.fileExists(atPath: logsURL.path) else { return }
-        do {
-            let data = try Data(contentsOf: logsURL)
-            self.logs = try JSONDecoder().decode([ExerciseLog].self, from: data)
-        } catch {
-            print("Load logs failed:", error)
-            self.logs = []
-        }
+        do { logs = try JSONDecoder().decode([ExerciseLog].self, from: Data(contentsOf: logsURL)) }
+        catch { print("Load logs failed:", error); logs = [] }
+    }
+    private func saveLogs() {
+        do { try JSONEncoder().encode(logs).write(to: logsURL, options: .atomic) }
+        catch { print("Save logs failed:", error) }
     }
 
-    private func saveLogs() {
-        do {
-            let data = try JSONEncoder().encode(logs)
-            try data.write(to: logsURL, options: .atomic)
-        } catch {
-            print("Save logs failed:", error)
-        }
+    // MARK: - Progressive Overload
+    /// Increase defaultWeight for the exercise on a specific weekday.
+    func applyProgression(for weekday: Weekday, exerciseId: UUID, increment: Double) {
+        guard var plan = plan,
+              let dayIndex = plan.index(of: weekday),
+              let exIndex = plan.days[dayIndex].exercises.firstIndex(where: { $0.id == exerciseId })
+        else { return }
+
+        var ex = plan.days[dayIndex].exercises[exIndex]
+        let base = ex.defaultWeight ?? 0
+        ex.defaultWeight = base + increment
+        plan.days[dayIndex].exercises[exIndex] = ex
+        self.plan = plan
+        savePlan()
     }
 }

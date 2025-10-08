@@ -27,12 +27,12 @@ struct DayDetailView: View {
                 Button {
                     editing = nil
                     showingAdd = true
+                    Haptics.tap()
                 } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "plus.circle.fill").imageScale(.large)
-                        Text("Add an exercise").font(.body.weight(.semibold))
-                    }
-                    .foregroundStyle(.green)
+                    Label("Add an exercise", systemImage: "plus.circle.fill")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.green)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
                 .listRowBackground(Color.clear)
@@ -41,7 +41,7 @@ struct DayDetailView: View {
                     Text(day.isWorkoutDay
                          ? "No exercises yet. Tap “Add an exercise”."
                          : "This is a rest day.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(PT.textSub)
                 } else {
                     ForEach(day.exercises) { ex in
                         Button {
@@ -58,7 +58,7 @@ struct DayDetailView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(Color.black)
+        .background(LinearGradient(colors: [PT.bgTop, PT.bgBottom], startPoint: .top, endPoint: .bottom))
         .navigationTitle(day.weekday.rawValue)
         .toolbar { ToolbarItem(placement: .topBarTrailing) { EditButton() } }
         .sheet(isPresented: $showingAdd) {
@@ -87,7 +87,7 @@ struct DayDetailView: View {
             if new.isEmpty && day.isWorkoutDay { day.isWorkoutDay = false } // auto OFF
         }
         .alert("Turn this into a rest day?", isPresented: $showConfirmClear) {
-            Button("Cancel", role: .cancel) {
+            Button("Keep workout day", role: .cancel) {
                 if pendingTurnOff { day.isWorkoutDay = true }
                 pendingTurnOff = false
             }
@@ -95,9 +95,10 @@ struct DayDetailView: View {
                 day.exercises.removeAll()
                 day.isWorkoutDay = false
                 pendingTurnOff = false
+                Haptics.warning()
             }
         } message: {
-            Text("This will clear all exercises for this day.")
+            Text("This removes all exercises for this day.")
         }
     }
 

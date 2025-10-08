@@ -30,10 +30,10 @@ struct WeeklyPlanEditorView: View {
                         NavigationLink {
                             DayDetailView(day: $day)
                         } label: {
+                            // --- Updated row to avoid wrapping + nicer status ---
                             HStack(spacing: 12) {
                                 Text(day.weekday.rawValue)
-                                    .font(.body)
-                                    .layoutPriority(1)              // keep the day name from being squeezed first
+                                    .layoutPriority(1)
 
                                 Spacer(minLength: 12)
 
@@ -46,14 +46,12 @@ struct WeeklyPlanEditorView: View {
                                         }
                                         .foregroundStyle(.green)
                                     } else {
-                                        Text("Rest")
-                                            .foregroundStyle(.secondary)
+                                        Text("Rest").foregroundStyle(PT.textSub)
                                     }
                                 }
                                 .lineLimit(1)
-                                .truncationMode(.tail)
-                                .fixedSize(horizontal: true, vertical: false)  // ← don’t allow wrapping
-                                .frame(minWidth: 98, alignment: .trailing)     // ← reserve space so it won’t get crushed
+                                .fixedSize(horizontal: true, vertical: false)
+                                .frame(minWidth: 98, alignment: .trailing)
 
                                 Toggle("", isOn: $day.isWorkoutDay)
                                     .labelsHidden()
@@ -69,14 +67,19 @@ struct WeeklyPlanEditorView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(Color.black)
+            .background(LinearGradient(colors: [PT.bgTop, PT.bgBottom], startPoint: .top, endPoint: .bottom))
             .navigationTitle(initial == nil ? "New Plan" : "Edit Plan")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { onSave(draft); dismiss() }.tint(.green)
+                    Button("Save") { onSave(draft); Haptics.success(); dismiss() }.tint(.green)
                 }
             }
         }
     }
+}
+
+#Preview {
+    WeeklyPlanEditorView(initial: .blank()) { _ in }
+        .preferredColorScheme(.dark)
 }

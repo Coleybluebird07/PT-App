@@ -14,9 +14,9 @@ struct ClientsListView: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            Group {
                 if clientStore.clients.isEmpty {
-                    Section {
+                    VStack(spacing: 12) {
                         Text("No clients yet.")
                             .foregroundStyle(.secondary)
                         Button {
@@ -30,42 +30,50 @@ struct ClientsListView: View {
                         }
                         .tint(.green)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 } else {
-                    Section("Your Clients") {
-                        ForEach(clientStore.clients, id: \.id) { client in
-                            NavigationLink {
-                                ClientDetailView(client: client)
-                            } label: {
-                                HStack {
-                                    Circle()
-                                        .fill(Color.green)
-                                        .frame(width: 32, height: 32)
-                                        .overlay(Text(client.displayName.prefix(1)))
-                                    Text(client.displayName)
+                    List {
+                        Section("Your Clients") {
+                            ForEach(clientStore.clients, id: \.id) { client in
+                                NavigationLink(
+                                    destination: ClientDetailView(clientId: client.id) // expects String id
+                                ) {
+                                    HStack {
+                                        Circle()
+                                            .fill(Color.green)
+                                            .frame(width: 32, height: 32)
+                                            .overlay(
+                                                Text(String(client.displayName.prefix(1)))
+                                                    .font(.caption)
+                                                    .foregroundStyle(.white)
+                                            )
+                                        Text(client.displayName)
+                                    }
                                 }
                             }
                         }
                     }
+                    .listStyle(.insetGrouped)
                 }
             }
-            .navigationTitle("Clients")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task {
-                            if let ptId = session.user?.id {
-                                await clientStore.addClient(for: ptId, displayName: "New Client")
-                            }
+        }
+        .navigationTitle("Clients")   // ← attach to NavigationStack
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task {
+                        if let ptId = session.user?.id {
+                            await clientStore.addClient(for: ptId, displayName: "New Client")
                         }
-                    } label: {
-                        Image(systemName: "plus")
                     }
+                } label: {
+                    Image(systemName: "plus")
                 }
             }
-            .task {
-                if let ptId = session.user?.id {
-                    await clientStore.fetchClients(for: ptId)
-                }
+        }
+        .task {
+            if let ptId = session.user?.id {
+                await clientStore.fetchClients(for: ptId)
             }
         }
     }

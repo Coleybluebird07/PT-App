@@ -8,26 +8,41 @@
 
 import Foundation
 
-struct WeeklyPlan: Codable {
+struct WeeklyPlan: Identifiable, Codable {
+    var id: String = UUID().uuidString   // 🔥 unique plan ID
+    var name: String = "My Plan"
     var days: [DayPlan]
     var createdAt: Date = Date()
 
-    static func blank() -> WeeklyPlan {
-        WeeklyPlan(days: Weekday.allCases.map { DayPlan(weekday: $0) })
-    }
-
-    func day(for weekday: Weekday) -> DayPlan? {
-        days.first(where: { $0.weekday == weekday })
-    }
-
-    func index(of weekday: Weekday) -> Int? {
-        days.firstIndex(where: { $0.weekday == weekday })
+    init(id: String = UUID().uuidString, name: String = "My Plan", days: [DayPlan]) {
+        self.id = id
+        self.name = name
+        self.days = days
+        self.createdAt = Date()
     }
 }
 
 extension WeeklyPlan {
-    /// Treat as “no plan” if every day is rest with no exercises.
+    static func blank() -> WeeklyPlan {
+        return WeeklyPlan(name: "New Plan", days: [])
+    }
+}
+
+extension WeeklyPlan {
+    /// Returns the plan for the given weekday
+    func day(for weekday: Weekday) -> DayPlan? {
+        return days.first { $0.weekday == weekday }
+    }
+
+    /// Checks if the plan has no workout days or all rest days
     var isTrulyEmpty: Bool {
-        days.allSatisfy { !$0.isWorkoutDay && $0.exercises.isEmpty }
+        return days.isEmpty || days.allSatisfy { !$0.isWorkoutDay }
+    }
+}
+
+extension WeeklyPlan {
+    /// Finds the index of a DayPlan for a given weekday
+    func index(of weekday: Weekday) -> Int? {
+        return days.firstIndex { $0.weekday == weekday }
     }
 }

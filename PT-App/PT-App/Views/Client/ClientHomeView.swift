@@ -1,13 +1,14 @@
 //
-//  ContentView.swift
+//  ClientHomeView.swift
 //  PT-App
 //
-//  Created by David Cole on 04/10/2025.
+//  Created by David Cole on 08/10/2025.
 //
+
 
 import SwiftUI
 
-struct ContentView: View {
+struct ClientHomeView: View {
     @EnvironmentObject private var store: PlanStore
     @State private var editorKind: PlanEditorKind? = nil
     @State private var showDeleteConfirm = false
@@ -22,7 +23,7 @@ struct ContentView: View {
                     TodayView(
                         today: today,
                         onEdit: { editorKind = .edit },
-                        onNew: { editorKind = .new },
+                        onNew:  { editorKind = .new },
                         onDelete: { showDeleteConfirm = true }
                     )
                     .padding(.horizontal, 20)
@@ -38,53 +39,32 @@ struct ContentView: View {
                 if store.hasUsablePlan {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
-                            Button(action: { editorKind = .edit }) {
-                                Label("Edit plan", systemImage: "pencil")
-                            }
-
-                            Button(action: { editorKind = .new }) {
-                                Label("New plan", systemImage: "calendar.badge.plus")
-                            }
-
-                            Button(role: .destructive, action: {
-                                showDeleteConfirm = true
-                            }) {
-                                Label("Delete plan", systemImage: "trash")
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                        }
+                            Button(action: { editorKind = .edit }) { Label("Edit plan", systemImage: "pencil") }
+                            Button(action: { editorKind = .new })  { Label("New plan",  systemImage: "calendar.badge.plus") }
+                            Button(role: .destructive) { showDeleteConfirm = true } label: { Label("Delete plan", systemImage: "trash") }
+                        } label: { Image(systemName: "ellipsis.circle") }
                     }
                 }
             }
             .confirmationDialog("Delete current plan?",
                                 isPresented: $showDeleteConfirm,
                                 titleVisibility: .visible) {
-                Button("Delete plan", role: .destructive) {
-                    store.deletePlan()
-                    Haptics.error()
-                }
+                Button("Delete plan", role: .destructive) { store.deletePlan(); Haptics.error() }
                 Button("Cancel", role: .cancel) { }
             }
             .sheet(item: $editorKind) { kind in
                 WeeklyPlanEditorView(
                     initial: kind == .edit ? store.plan : nil,
-                    onSave: { newPlan in
-                        Haptics.success()
-                        store.save(plan: newPlan)
-                    }
+                    onSave: { newPlan in Haptics.success(); store.save(plan: newPlan) }
                 )
             }
         }
     }
 }
 
-// MARK: - Sheet Enum
-enum PlanEditorKind: Identifiable {
-    case new, edit
-    var id: Int { self == .new ? 0 : 1 }
-}
+enum PlanEditorKind: Identifiable { case new, edit; var id: Int { self == .new ? 0 : 1 } }
 
 #Preview {
-    ContentView().environmentObject(PlanStore())
+    ClientHomeView().environmentObject(PlanStore())
+        .preferredColorScheme(.dark)
 }
